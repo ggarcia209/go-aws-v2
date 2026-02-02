@@ -1,0 +1,195 @@
+package goses
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
+	"github.com/aws/aws-sdk-go-v2/service/sesv2/types"
+	"github.com/ggarcia209/go-aws-v2/v2/goaws"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	gomock "go.uber.org/mock/gomock"
+)
+
+func TestNewSES(t *testing.T) {
+	cfg, err := goaws.NewDefaultConfig(context.Background())
+	if err != nil {
+		t.Errorf("goaws.NewDefaultConfig: %v", err)
+		return
+	}
+
+	require.NotNil(t, cfg)
+
+	// test interface implementation
+	ses := NewSES(*cfg)
+	assert.NotNil(t, ses)
+	assert.NotNil(t, ses.svc)
+	assert.Implements(t, (*SESLogic)(nil), ses)
+}
+
+func TestSES_ListEmailIdentities(t *testing.T) {
+	tests := []struct {
+		name               string
+		mockSetup          func(ctrl *gomock.Controller) SESClientAPI
+		expectedIdentities []string
+		expectedError      error
+	}{
+		{
+			name: "Success",
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				mockSvc.EXPECT().ListEmailIdentities(gomock.Any(), gomock.Any()).Return(&sesv2.ListEmailIdentitiesOutput{
+					EmailIdentities: []types.IdentityInfo{{
+						IdentityName:       aws.String("test-identity"),
+						VerificationStatus: types.VerificationStatusSuccess,
+					}},
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedIdentities: []string{"test-identity"},
+			expectedError:      nil,
+		},
+		{
+			name: "Success - with unverified identity",
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				mockSvc.EXPECT().ListEmailIdentities(gomock.Any(), gomock.Any()).Return(&sesv2.ListEmailIdentitiesOutput{
+					EmailIdentities: []types.IdentityInfo{{
+						IdentityName:       aws.String("test-identity"),
+						VerificationStatus: types.VerificationStatusPending,
+					}},
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedIdentities: []string{},
+			expectedError:      nil,
+		},
+		{
+			name: "error",
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				mockSvc.EXPECT().ListEmailIdentities(gomock.Any(), gomock.Any()).Return(nil, errors.New("email failed")).Times(1)
+				return mockSvc
+			},
+			expectedIdentities: []string{},
+			expectedError:      goaws.NewInternalError(errors.New("s.svc.ListEmailIdentities: email failed")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSvc := tt.mockSetup(ctrl)
+			s := &SES{svc: mockSvc}
+
+			res, err := s.ListVerifiedIdentities(context.Background())
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError.Error())
+				assert.Implements(t, (*goaws.AwsError)(nil), err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedIdentities, res.EmailAddresses)
+			}
+		})
+	}
+}
+
+func TestSES_SendEmail(t *testing.T) {
+	tests := []struct {
+		name          string
+		params        SendEmailParams
+		mockSetup     func(ctrl *gomock.Controller) SESClientAPI
+		expectedError error
+	}{
+		{
+			name: "Success",
+			params: SendEmailParams{
+				Subject:     "help me spend my money",
+				From:        "thelastprinceofnigeria@gmail.com",
+				To:          []string{"chooch@gmail.com"},
+				TextBody:    "give me your bitcoin keys and I will send you money",
+				HtmlBody:    "give me your bitcoin keys and I will send you money",
+				ConfigSet:   "test-config",
+				Attachments: [][]byte{{}, {}},
+			},
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				mockSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(&sesv2.SendEmailOutput{}, nil).Times(1)
+				return mockSvc
+			},
+			expectedError: nil,
+		},
+		{
+			name: "error - invalid recipient",
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				return NewMockSESClientAPI(ctrl)
+			},
+			expectedError: NewInvalidRecipientError(),
+		},
+		{
+			name: "error - message rejected",
+			params: SendEmailParams{
+				Subject:     "help me spend my money",
+				From:        "thelastprinceofnigeria@gmail.com",
+				To:          []string{"chooch@gmail.com"},
+				TextBody:    "give me your bitcoin keys and I will send you money",
+				HtmlBody:    "give me your bitcoin keys and I will send you money",
+				ConfigSet:   "test-config",
+				Attachments: [][]byte{{}, {}},
+			},
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				mockSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(nil, &types.MessageRejected{Message: aws.String("message rejected by server")}).Times(1)
+				return mockSvc
+			},
+			expectedError: goaws.NewInternalError(errors.New("s.svc.SendEmail: message rejected by server")),
+		},
+		{
+			name: "error - unverified domaind",
+			params: SendEmailParams{
+				Subject:     "help me spend my money",
+				From:        "thelastprinceofnigeria@gmail.com",
+				To:          []string{"chooch@gmail.com"},
+				TextBody:    "give me your bitcoin keys and I will send you money",
+				HtmlBody:    "give me your bitcoin keys and I will send you money",
+				ConfigSet:   "test-config",
+				Attachments: [][]byte{{}, {}},
+			},
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				mockSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any()).Return(nil, &types.MailFromDomainNotVerifiedException{Message: aws.String("domain not verified")}).Times(1)
+				return mockSvc
+			},
+			expectedError: NewUnverifiedDomainError("domain not verified"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSvc := tt.mockSetup(ctrl)
+			s := &SES{svc: mockSvc}
+
+			err := s.SendEmail(context.Background(), tt.params)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError.Error())
+				assert.Implements(t, (*goaws.AwsError)(nil), err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
