@@ -135,8 +135,8 @@ func TestDeleteQueue(t *testing.T) {
 		input string
 		want  string // error code
 	}{
-		{"https://sqs.us-west-2.amazonaws.com/840111470667/test-001", ""},                     // delete existing
-		{"https://sqs.us-west-2.amazonaws.com/840111470667/test-001", ErrAWSNonExistentQueue}, // delete non-existent
+		{"https://sqs.us-west-2.amazonaws.com/123456789012/test-001", ""},                     // delete existing
+		{"https://sqs.us-west-2.amazonaws.com/123456789012/test-001", ErrAWSNonExistentQueue}, // delete non-existent
 	}
 	sqs := NewSqsQueues(goaws.NewDefaultSession())
 	for _, test := range tests {
