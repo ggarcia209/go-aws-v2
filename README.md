@@ -17,6 +17,7 @@ Golang packages that wrap AWS SDK v2 APIs for core AWS services, providing simpl
 *   **gos3**: S3 object upload and download.
 *   **gosns**: SNS topic creation, subscription, and publishing.
 *   **goses**: SES email sending.
+*   **gosm**: Secrets Manager secret retrieval.
 
 ## Installation
 
@@ -158,6 +159,29 @@ func example(cfg *goaws.AwsConfig) {
         TextBody: "Hello User",
     }
     err := client.SendEmail(context.TODO(), params)
+}
+```
+
+### Secrets Manager (`gosm`)
+
+```go
+import (
+	"context"
+	"fmt"
+	"github.com/ggarcia209/go-aws-v2/v2/gosm"
+)
+
+func example(cfg *goaws.AwsConfig) {
+    var mySecretFromEnv string
+	client := gosm.NewSecretsManager(*cfg)
+
+	// Get Secret
+	// Returns the secret string value
+	resp, err := client.GetSecret(context.TODO(), "my-secret-key")
+	if err != nil {
+		// handle error
+	}
+	mySecretFromEnv = resp.Secret // DON'T DO THIS (Example only)
 }
 ```
 

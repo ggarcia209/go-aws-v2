@@ -178,7 +178,6 @@ func (u *UpdateExpr) SetPlus(name string, aug, add any, variable bool) {
 	}
 	update := u.Update.Set(expression.Name(name), expression.Plus(expression.Value(aug), expression.Value(add)))
 	u.Update = update
-	return
 }
 
 // SetPlus creates a new Set Update expression, where the value is the difference of the 'min' and 'sub' args.
@@ -194,7 +193,6 @@ func (u *UpdateExpr) SetMinus(name string, min, sub any, variable bool) {
 	}
 	update := u.Update.Set(expression.Name(name), expression.Minus(expression.Value(min), expression.Value(sub)))
 	u.Update = update
-	return
 }
 
 // SetListAppend creates a new Update expression to append the given list to the current value of the given field name.

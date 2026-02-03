@@ -9,7 +9,7 @@ type SendEmailParams struct {
 	TextBody    string   `json:"text_body"`
 	HtmlBody    string   `json:"html_body,omitempty"`
 	ConfigSet   string   `json:"config_set,omitempty"`
-	Attachments [][]byte `json:"attachments,omitempy"`
+	Attachments [][]byte `json:"attachments,omitempty"`
 }
 
 type ListVerifiedIdentitiesResponse struct {
