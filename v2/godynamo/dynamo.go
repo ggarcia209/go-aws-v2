@@ -9,6 +9,8 @@ package godynamo
 */
 
 import (
+	"log"
+
 	"github.com/ggarcia209/go-aws-v2/v2/goaws"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -25,6 +27,7 @@ func NewDynamoDB(config goaws.AwsConfig, tables []*Table, failConfig *FailConfig
 	for _, t := range tables {
 		tm[t.TableName] = t
 	}
+	log.Printf("region: %s", config.Config.Region)
 	svc := dynamodb.New(dynamodb.Options{
 		Region:      config.Config.Region,
 		Credentials: config.Config.Credentials,

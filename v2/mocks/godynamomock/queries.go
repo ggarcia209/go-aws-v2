@@ -127,33 +127,33 @@ func (mr *MockQueriesLogicMockRecorder) GetItem(ctx, query, tableName, item, exp
 }
 
 // QueryItems mocks base method.
-func (m *MockQueriesLogic) QueryItems(ctx context.Context, tableName string, model, startKey any, expr godynamo.Expression, perPage *int32) (*godynamo.QueryResults, error) {
+func (m *MockQueriesLogic) QueryItems(ctx context.Context, tableName string, startKey any, expr godynamo.Expression, perPage *int32) (*godynamo.QueryResults, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "QueryItems", ctx, tableName, model, startKey, expr, perPage)
+	ret := m.ctrl.Call(m, "QueryItems", ctx, tableName, startKey, expr, perPage)
 	ret0, _ := ret[0].(*godynamo.QueryResults)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // QueryItems indicates an expected call of QueryItems.
-func (mr *MockQueriesLogicMockRecorder) QueryItems(ctx, tableName, model, startKey, expr, perPage any) *gomock.Call {
+func (mr *MockQueriesLogicMockRecorder) QueryItems(ctx, tableName, startKey, expr, perPage any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryItems", reflect.TypeOf((*MockQueriesLogic)(nil).QueryItems), ctx, tableName, model, startKey, expr, perPage)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryItems", reflect.TypeOf((*MockQueriesLogic)(nil).QueryItems), ctx, tableName, startKey, expr, perPage)
 }
 
 // ScanItems mocks base method.
-func (m *MockQueriesLogic) ScanItems(ctx context.Context, tableName string, model, startKey any, expr godynamo.Expression, perPage *int32) (*godynamo.ScanResults, error) {
+func (m *MockQueriesLogic) ScanItems(ctx context.Context, tableName string, startKey any, expr godynamo.Expression, perPage *int32) (*godynamo.ScanResults, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ScanItems", ctx, tableName, model, startKey, expr, perPage)
+	ret := m.ctrl.Call(m, "ScanItems", ctx, tableName, startKey, expr, perPage)
 	ret0, _ := ret[0].(*godynamo.ScanResults)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ScanItems indicates an expected call of ScanItems.
-func (mr *MockQueriesLogicMockRecorder) ScanItems(ctx, tableName, model, startKey, expr, perPage any) *gomock.Call {
+func (mr *MockQueriesLogicMockRecorder) ScanItems(ctx, tableName, startKey, expr, perPage any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanItems", reflect.TypeOf((*MockQueriesLogic)(nil).ScanItems), ctx, tableName, model, startKey, expr, perPage)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanItems", reflect.TypeOf((*MockQueriesLogic)(nil).ScanItems), ctx, tableName, startKey, expr, perPage)
 }
 
 // UpdateItem mocks base method.

@@ -181,7 +181,7 @@ func example(cfg *goaws.AwsConfig) {
 	if err != nil {
 		// handle error
 	}
-	mySecretFromEnv = resp.Secret // DON'T DO THIS (Example only)
+	mySecretFromEnv = resp.Secret
 }
 ```
 
