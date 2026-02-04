@@ -17,6 +17,7 @@ Golang packages that wrap AWS SDK v2 APIs for core AWS services, providing simpl
 *   **gos3**: S3 object upload and download.
 *   **gosns**: SNS topic creation, subscription, and publishing.
 *   **goses**: SES email sending.
+*   **gosm**: Secrets Manager secret retrieval.
 
 ## Installation
 
