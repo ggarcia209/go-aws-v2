@@ -161,6 +161,29 @@ func example(cfg *goaws.AwsConfig) {
 }
 ```
 
+### Secrets Manager (`gosm`)
+
+```go
+import (
+	"context"
+	"fmt"
+	"github.com/ggarcia209/go-aws-v2/v2/gosm"
+)
+
+func example(cfg *goaws.AwsConfig) {
+    var mySecretFromEnv string
+	client := gosm.NewSecretsManager(*cfg)
+
+	// Get Secret
+	// Returns the secret string value
+	resp, err := client.GetSecret(context.TODO(), "my-secret-key")
+	if err != nil {
+		// handle error
+	}
+	mySecretFromEnv = resp.Secret
+}
+```
+
 ## Unit Testing with Mocks
 
 This library provides generated mocks for all client interfaces using `go.uber.org/mock/gomock`. You can import these mocks in your own projects to robustly test your code that interacts with `go-aws` wrappers.

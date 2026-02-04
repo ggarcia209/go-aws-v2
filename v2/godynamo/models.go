@@ -59,14 +59,16 @@ type Query struct {
 }
 
 type QueryResults struct {
-	Results []any                           `json:"results"`
+	Rows    []QueryRow                      `json:"results"`
 	PerPage int32                           `json:"per_page,omitempty"`
 	LastKey map[string]types.AttributeValue `json:"last_key,omitempty"`
 }
 
+type QueryRow = map[string]any
+
 type ScanResults struct {
-	Results []any                           `json:"results"`
-	PerPage int32                           `json:"per_page,omitempy"`
+	Rows    []QueryRow                      `json:"results"`
+	PerPage int32                           `json:"per_page,omitempty"`
 	LastKey map[string]types.AttributeValue `json:"last_key,omitempty"`
 }
 

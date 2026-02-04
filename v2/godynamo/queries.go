@@ -23,8 +23,8 @@ type QueriesLogic interface {
 	BatchWriteCreate(ctx context.Context, tableName string, items []any) error
 	BatchWriteDelete(ctx context.Context, tableName string, queries []*Query) error
 	BatchGet(ctx context.Context, tableName string, queries []*Query, refObjs []any, expr Expression) ([]any, error)
-	QueryItems(ctx context.Context, tableName string, model any, startKey any, expr Expression, perPage *int32) (*QueryResults, error)
-	ScanItems(ctx context.Context, tableName string, model any, startKey any, expr Expression, perPage *int32) (*ScanResults, error)
+	QueryItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*QueryResults, error)
+	ScanItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*ScanResults, error)
 }
 
 // DynamoDBQueriesClientAPI defines the interface for the AWS DynamoDB client methods used by this package.
@@ -419,14 +419,14 @@ func (q *Queries) BatchGet(ctx context.Context, tableName string, queries []*Que
 }
 
 // ScanItems scans the given Table for items matching the given expression parameters.
-func (q *Queries) ScanItems(ctx context.Context, tableName string, model any, startKey any, expr Expression, perPage *int32) (*ScanResults, error) {
+func (q *Queries) ScanItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*ScanResults, error) {
 	// get table
 	t := q.tables[tableName]
 	if t == nil {
 		return nil, NewTableNotFoundError(tableName)
 	}
 
-	items := make([]any, 0)
+	items := make([]QueryRow, 0)
 
 	// Build the query input parameters
 	input := &dynamodb.ScanInput{
@@ -454,23 +454,15 @@ func (q *Queries) ScanItems(ctx context.Context, tableName string, model any, st
 
 	// get results
 	for _, res := range result.Items {
-		item := model
+		item := QueryRow{}
 		if err = attributevalue.UnmarshalMap(res, &item); err != nil {
 			return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.UnmarshalMap: %w", err))
 		}
 		items = append(items, item)
 	}
 
-	for _, res := range result.Items {
-		item := model
-		err = attributevalue.UnmarshalMap(res, &item)
-		if err != nil {
-			return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.UnmarshalMap: %w", err))
-		}
-	}
-
 	scanResult := &ScanResults{
-		Results: items,
+		Rows:    items,
 		LastKey: result.LastEvaluatedKey,
 	}
 
@@ -481,14 +473,14 @@ func (q *Queries) ScanItems(ctx context.Context, tableName string, model any, st
 }
 
 // QueryItems queries the given Table for items matching the given expression parameters.
-func (q *Queries) QueryItems(ctx context.Context, tableName string, model any, startKey any, expr Expression, perPage *int32) (*QueryResults, error) {
+func (q *Queries) QueryItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*QueryResults, error) {
 	// get table
 	t := q.tables[tableName]
 	if t == nil {
 		return nil, NewTableNotFoundError(tableName)
 	}
 
-	items := make([]any, 0)
+	items := make([]QueryRow, 0)
 
 	// Build the query input parameters
 	input := &dynamodb.QueryInput{
@@ -512,31 +504,20 @@ func (q *Queries) QueryItems(ctx context.Context, tableName string, model any, s
 	// Make the DynamoDB Query API call
 	result, err := q.svc.Query(ctx, input)
 	if err != nil {
-		return nil, handleErr(fmt.Errorf("q.svc.Scan: %w", err))
+		return nil, handleErr(fmt.Errorf("q.svc.Query: %w", err))
 	}
 
 	// get results
 	for _, res := range result.Items {
-		item := model
+		item := QueryRow{}
 		if err = attributevalue.UnmarshalMap(res, &item); err != nil {
 			return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.UnmarshalMap: %w", err))
 		}
 		items = append(items, item)
 	}
 
-	for _, res := range result.Items {
-		item := model
-		err = attributevalue.UnmarshalMap(res, &item)
-		if err != nil {
-			return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.UnmarshalMap: %w", err))
-		}
-
-		// get next page
-		input.ExclusiveStartKey = result.LastEvaluatedKey
-	}
-
 	queryResult := &QueryResults{
-		Results: items,
+		Rows:    items,
 		LastKey: result.LastEvaluatedKey,
 	}
 
