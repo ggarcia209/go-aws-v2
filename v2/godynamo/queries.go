@@ -22,7 +22,7 @@ type QueriesLogic interface {
 	DeleteItem(ctx context.Context, query *Query, tableName string) error
 	BatchWriteCreate(ctx context.Context, tableName string, items []any) error
 	BatchWriteDelete(ctx context.Context, tableName string, queries []*Query) error
-	BatchGet(ctx context.Context, tableName string, queries []*Query, refObjs []any, expr Expression) ([]any, error)
+	BatchGet(ctx context.Context, tableName string, queries []*Query, expr Expression) ([]QueryRow, error)
 	QueryItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*QueryResults, error)
 	ScanItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*ScanResults, error)
 }
@@ -330,13 +330,9 @@ func (q *Queries) BatchWriteDelete(ctx context.Context, tableName string, querie
 // refObjs must be non-nil pointers of the same type,
 // 1 for each query/object returneq.
 //   - Returns err if len(queries) != len(refObjs).
-func (q *Queries) BatchGet(ctx context.Context, tableName string, queries []*Query, refObjs []any, expr Expression) ([]any, error) {
+func (q *Queries) BatchGet(ctx context.Context, tableName string, queries []*Query, expr Expression) ([]QueryRow, error) {
 	if len(queries) > 100 {
 		return nil, NewCollectionSizeExceededError(len(queries))
-	}
-
-	if len(queries) != len(refObjs) {
-		return nil, NewReferenceObjectsCountError()
 	}
 
 	// get table
@@ -345,7 +341,7 @@ func (q *Queries) BatchGet(ctx context.Context, tableName string, queries []*Que
 		return nil, NewTableNotFoundError(tableName)
 	}
 
-	items := make([]any, 0)
+	items := make([]QueryRow, 0)
 
 	// create map of RequestItems
 	reqItems := make(map[string]types.KeysAndAttributes)
@@ -401,12 +397,12 @@ func (q *Queries) BatchGet(ctx context.Context, tableName string, queries []*Que
 			}
 		}
 
-		for i, r := range result.Responses[t.TableName] {
-			ref := refObjs[i]
-			if err := attributevalue.UnmarshalMap(r, &ref); err != nil {
+		for _, r := range result.Responses[t.TableName] {
+			var item = make(QueryRow)
+			if err := attributevalue.UnmarshalMap(r, &item); err != nil {
 				return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.UnmarshalMap, %w", err))
 			}
-			items = append(items, ref)
+			items = append(items, item)
 		}
 
 		if len(result.UnprocessedKeys) == 0 {

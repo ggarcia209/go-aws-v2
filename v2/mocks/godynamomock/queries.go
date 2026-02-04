@@ -42,18 +42,18 @@ func (m *MockQueriesLogic) EXPECT() *MockQueriesLogicMockRecorder {
 }
 
 // BatchGet mocks base method.
-func (m *MockQueriesLogic) BatchGet(ctx context.Context, tableName string, queries []*godynamo.Query, refObjs []any, expr godynamo.Expression) ([]any, error) {
+func (m *MockQueriesLogic) BatchGet(ctx context.Context, tableName string, queries []*godynamo.Query, expr godynamo.Expression) ([]godynamo.QueryRow, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchGet", ctx, tableName, queries, refObjs, expr)
-	ret0, _ := ret[0].([]any)
+	ret := m.ctrl.Call(m, "BatchGet", ctx, tableName, queries, expr)
+	ret0, _ := ret[0].([]godynamo.QueryRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // BatchGet indicates an expected call of BatchGet.
-func (mr *MockQueriesLogicMockRecorder) BatchGet(ctx, tableName, queries, refObjs, expr any) *gomock.Call {
+func (mr *MockQueriesLogicMockRecorder) BatchGet(ctx, tableName, queries, expr any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGet", reflect.TypeOf((*MockQueriesLogic)(nil).BatchGet), ctx, tableName, queries, refObjs, expr)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchGet", reflect.TypeOf((*MockQueriesLogic)(nil).BatchGet), ctx, tableName, queries, expr)
 }
 
 // BatchWriteCreate mocks base method.
