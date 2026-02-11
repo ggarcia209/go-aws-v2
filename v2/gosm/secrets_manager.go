@@ -2,6 +2,7 @@ package gosm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -38,6 +39,7 @@ func NewSecretsManager(config goaws.AwsConfig) *SecretsManager {
 
 // GetSecret returns the secret at the given key.
 func (s *SecretsManager) GetSecret(ctx context.Context, key string) (*GetSecretResponse, error) {
+	// get secret from secrets manager
 	input := &sm.GetSecretValueInput{
 		SecretId: aws.String(key),
 	}
@@ -70,5 +72,42 @@ func (s *SecretsManager) GetSecret(ctx context.Context, key string) (*GetSecretR
 		}
 	}
 
-	return &GetSecretResponse{Secret: string(secret.SecretBinary)}, nil
+	// get response from secrets manager
+	if secret.ARN == nil {
+		return nil, NewMissingResponseDataError("ARN")
+	}
+	if secret.Name == nil {
+		return nil, NewMissingResponseDataError("Name")
+	}
+	resp := &GetSecretResponse{
+		ARN:  *secret.ARN,
+		Name: *secret.Name,
+	}
+
+	var secretString string
+	if secret.SecretString == nil && secret.SecretBinary == nil {
+		return nil, NewMissingResponseDataError("Secret")
+	}
+	if secret.SecretString != nil {
+		secretString = *secret.SecretString
+	} else {
+		secretString = string(secret.SecretBinary)
+	}
+
+	// first, we attempt to get secret in k/v format
+	var kv = make(map[string]string)
+	if err = json.Unmarshal([]byte(secretString), &kv); err != nil {
+		// secret is in plain text format
+		resp.Secret.Value = secretString
+		resp.IsKeyPair = false
+	} else {
+		// secret is in k/v format
+		for k, v := range kv {
+			resp.Secret.Key = aws.String(k)
+			resp.Secret.Value = v
+		}
+		resp.IsKeyPair = true
+	}
+
+	return resp, nil
 }

@@ -43,19 +43,101 @@ func TestSecretsManager_GetSecret(t *testing.T) {
 		expectedError  error
 	}{
 		{
-			name: "Success",
+			name: "Success -- plain text",
 			key:  "test-secret-key",
 			mockSetup: func(ctrl *gomock.Controller) SecretsManagerClientAPI {
 				mockSvc := NewMockSecretsManagerClientAPI(ctrl)
 				mockSvc.EXPECT().GetSecretValue(gomock.Any(), &sm.GetSecretValueInput{
 					SecretId: aws.String("test-secret-key"),
 				}).Return(&sm.GetSecretValueOutput{
+					ARN:          aws.String("test-secret-arn"),
+					Name:         aws.String("test-secret-name"),
+					SecretString: aws.String("test-secret-value"),
 					SecretBinary: []byte("test-secret-value"),
 				}, nil).Times(1)
 				return mockSvc
 			},
 			expectedSecret: "test-secret-value",
 			expectedError:  nil,
+		},
+		{
+			name: "Success -- k / v pair",
+			key:  "test-secret-key",
+			mockSetup: func(ctrl *gomock.Controller) SecretsManagerClientAPI {
+				mockSvc := NewMockSecretsManagerClientAPI(ctrl)
+				mockSvc.EXPECT().GetSecretValue(gomock.Any(), &sm.GetSecretValueInput{
+					SecretId: aws.String("test-secret-key"),
+				}).Return(&sm.GetSecretValueOutput{
+					ARN:          aws.String("test-secret-arn"),
+					Name:         aws.String("test-secret-name"),
+					SecretString: aws.String(`{"test-secret-key": "test-secret-value"}`),
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedSecret: "test-secret-value",
+			expectedError:  nil,
+		},
+		{
+			name: "Success -- binary only",
+			key:  "test-secret-key",
+			mockSetup: func(ctrl *gomock.Controller) SecretsManagerClientAPI {
+				mockSvc := NewMockSecretsManagerClientAPI(ctrl)
+				mockSvc.EXPECT().GetSecretValue(gomock.Any(), &sm.GetSecretValueInput{
+					SecretId: aws.String("test-secret-key"),
+				}).Return(&sm.GetSecretValueOutput{
+					ARN:          aws.String("test-secret-arn"),
+					Name:         aws.String("test-secret-name"),
+					SecretBinary: []byte(`{"test-secret-key": "test-secret-value"}`),
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedSecret: "test-secret-value",
+			expectedError:  nil,
+		},
+		{
+			name: "error - missing arn",
+			key:  "test-secret-key",
+			mockSetup: func(ctrl *gomock.Controller) SecretsManagerClientAPI {
+				mockSvc := NewMockSecretsManagerClientAPI(ctrl)
+				mockSvc.EXPECT().GetSecretValue(gomock.Any(), &sm.GetSecretValueInput{
+					SecretId: aws.String("test-secret-key"),
+				}).Return(&sm.GetSecretValueOutput{
+					Name:         aws.String("test-secret-name"),
+					SecretBinary: []byte(`{"test-secret-key": "test-secret-value"}`),
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedError: NewMissingResponseDataError("ARN"),
+		},
+		{
+			name: "error - missing name",
+			key:  "test-secret-key",
+			mockSetup: func(ctrl *gomock.Controller) SecretsManagerClientAPI {
+				mockSvc := NewMockSecretsManagerClientAPI(ctrl)
+				mockSvc.EXPECT().GetSecretValue(gomock.Any(), &sm.GetSecretValueInput{
+					SecretId: aws.String("test-secret-key"),
+				}).Return(&sm.GetSecretValueOutput{
+					ARN:          aws.String("test-secret-arn"),
+					SecretBinary: []byte(`{"test-secret-key": "test-secret-value"}`),
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedError: NewMissingResponseDataError("Name"),
+		},
+		{
+			name: "error - missing secret",
+			key:  "test-secret-key",
+			mockSetup: func(ctrl *gomock.Controller) SecretsManagerClientAPI {
+				mockSvc := NewMockSecretsManagerClientAPI(ctrl)
+				mockSvc.EXPECT().GetSecretValue(gomock.Any(), &sm.GetSecretValueInput{
+					SecretId: aws.String("test-secret-key"),
+				}).Return(&sm.GetSecretValueOutput{
+					ARN:  aws.String("test-secret-arn"),
+					Name: aws.String("test-secret-name"),
+				}, nil).Times(1)
+				return mockSvc
+			},
+			expectedError: NewMissingResponseDataError("Secret"),
 		},
 		{
 			name: "error - secret not found",
@@ -149,7 +231,7 @@ func TestSecretsManager_GetSecret(t *testing.T) {
 				assert.Implements(t, (*goaws.AwsError)(nil), err)
 			} else {
 				require.NoError(t, err)
-				assert.Equal(t, tt.expectedSecret, res.Secret)
+				assert.Equal(t, tt.expectedSecret, res.Secret.Value)
 			}
 		})
 	}
