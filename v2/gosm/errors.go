@@ -25,3 +25,13 @@ func NewSecretPermissionsError(key string) *SecretPermissionsError {
 		goaws.NewClientError(fmt.Errorf("secret permissions error: %s", key)),
 	}
 }
+
+type MissingResponseDataError struct {
+	*goaws.RetryableInternalError
+}
+
+func NewMissingResponseDataError(property string) *MissingResponseDataError {
+	return &MissingResponseDataError{
+		goaws.NewRetryableInternalError(fmt.Errorf("missing %s in response", property)),
+	}
+}
