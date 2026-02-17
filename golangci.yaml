@@ -1,6 +1,0 @@
-linters:
-  default: all
-  exlusions:
-    paths:
-      - /v1/**
-  
