@@ -1,0 +1,17 @@
+# golangci-lint configuration
+version: "2"
+
+linters:
+  exclusions:
+    warn-unused: true
+    rules:
+      - path: v1
+        linters:
+          - staticcheck
+          - unused
+
+formatters:
+  exclusions:
+    paths:
+      - v1
+      

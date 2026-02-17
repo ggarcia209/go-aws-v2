@@ -1,8 +1,6 @@
 package gosqs
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
@@ -186,15 +184,6 @@ type BatchUpdateVisibilityTimeoutErrEntry struct {
 // BatchUpdateVisibilityTimeoutEntry wraps the output *sqs.ChangeMessageVisibilityBatchResult object.
 type BatchUpdateVisibilityTimeoutEntry struct {
 	MessageID string `json:"message_id"`
-}
-
-type msgErr struct {
-	Code    string
-	Message string
-}
-
-func (e *msgErr) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
 // CreateMsgAttributes creates a MessageAttributeValue map from a list of MsgAV objects.

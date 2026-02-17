@@ -84,7 +84,7 @@ func (s *S3) GetObject(ctx context.Context, req GetFileRequest) (*GetObjectRespo
 			if re.ResponseError == nil {
 				return nil, fmt.Errorf("s.svc.HeadObject: %w", re.Err)
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return nil, NewItemNotFoundError(req.Key)
 			default:
@@ -127,7 +127,7 @@ func (s *S3) HeadObject(ctx context.Context, req GetFileRequest) (*HeadObjectRes
 			if re.ResponseError == nil {
 				return nil, goaws.NewInternalError(fmt.Errorf("s.svc.HeadObject: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return nil, NewItemNotFoundError(req.Key)
 			default:
@@ -171,7 +171,7 @@ func (s *S3) CheckIfObjectExists(ctx context.Context, req GetFileRequest) (*Obje
 			if re.ResponseError == nil {
 				return nil, goaws.NewInternalError(fmt.Errorf("s.svc.HeadObject: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return &ObjectExistsResponse{Exists: false}, nil
 			default:

@@ -116,7 +116,7 @@ func (t *Transactions) TxWrite(ctx context.Context, items []TransactionItem, req
 			if re.ResponseError == nil {
 				return nil, goaws.NewInternalError(fmt.Errorf("s.svc.DeleteMessage: %w", err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusBadRequest:
 				return nil, NewBadTxRequestError()
 			case http.StatusNotFound:

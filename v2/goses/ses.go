@@ -80,6 +80,13 @@ func (s *SES) SendEmail(ctx context.Context, params SendEmailParams) error {
 		configSet = aws.String(params.ConfigSet)
 	}
 
+	var attachements = make([]types.Attachment, 0)
+	for _, attachment := range params.Attachments {
+		attachements = append(attachements, types.Attachment{
+			RawContent: attachment,
+		})
+	}
+
 	input := &sesv2.SendEmailInput{
 		Destination: &types.Destination{
 			CcAddresses: params.Cc,
@@ -98,6 +105,7 @@ func (s *SES) SendEmail(ctx context.Context, params SendEmailParams) error {
 					Charset: aws.String(CharSet),
 					Data:    aws.String(params.Subject),
 				},
+				Attachments: attachements,
 			},
 		},
 		ReplyToAddresses:     params.ReplyTo,
@@ -124,7 +132,7 @@ func (s *SES) SendEmail(ctx context.Context, params SendEmailParams) error {
 			if re.ResponseError == nil {
 				return goaws.NewInternalError(fmt.Errorf("s.svc.SendEmail: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusBadRequest:
 				return NewInvalidSendRequestError(re.ResponseError.Error())
 			default:

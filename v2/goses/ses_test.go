@@ -128,6 +128,46 @@ func TestSES_SendEmail(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "Success - with attachments",
+			params: SendEmailParams{
+				Subject:  "Test with attachments",
+				From:     "sender@example.com",
+				To:       []string{"recipient@example.com"},
+				TextBody: "This email has attachments",
+				HtmlBody: "<p>This email has attachments</p>",
+				Attachments: [][]byte{
+					[]byte("attachment1 content"),
+					[]byte("attachment2 content"),
+				},
+			},
+			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
+				mockSvc := NewMockSESClientAPI(ctrl)
+				// Custom matcher to verify attachments are included
+				mockSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, input *sesv2.SendEmailInput, optFns ...func(*sesv2.Options)) (*sesv2.SendEmailOutput, error) {
+						// Verify attachments are present
+						if input.Content == nil || input.Content.Simple == nil {
+							return nil, errors.New("content or simple message is nil")
+						}
+						attachments := input.Content.Simple.Attachments
+						if len(attachments) != 2 {
+							return nil, errors.New("expected 2 attachments")
+						}
+						// Verify attachment content
+						if string(attachments[0].RawContent) != "attachment1 content" {
+							return nil, errors.New("attachment 1 content mismatch")
+						}
+						if string(attachments[1].RawContent) != "attachment2 content" {
+							return nil, errors.New("attachment 2 content mismatch")
+						}
+						return &sesv2.SendEmailOutput{}, nil
+					},
+				).Times(1)
+				return mockSvc
+			},
+			expectedError: nil,
+		},
+		{
 			name: "error - invalid recipient",
 			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
 				return NewMockSESClientAPI(ctrl)
