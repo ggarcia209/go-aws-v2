@@ -118,7 +118,7 @@ func TestSES_SendEmail(t *testing.T) {
 				TextBody:    "give me your bitcoin keys and I will send you money",
 				HtmlBody:    "give me your bitcoin keys and I will send you money",
 				ConfigSet:   "test-config",
-				Attachments: [][]byte{{}, {}},
+				Attachments: []Attachment{},
 			},
 			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
 				mockSvc := NewMockSESClientAPI(ctrl)
@@ -135,9 +135,17 @@ func TestSES_SendEmail(t *testing.T) {
 				To:       []string{"recipient@example.com"},
 				TextBody: "This email has attachments",
 				HtmlBody: "<p>This email has attachments</p>",
-				Attachments: [][]byte{
-					[]byte("attachment1 content"),
-					[]byte("attachment2 content"),
+				Attachments: []Attachment{
+					{
+						FileName:    "attachment1.txt",
+						Data:        []byte("attachment1 content"),
+						ContentType: aws.String("text/plain"),
+					},
+					{
+						FileName:    "attachment2.txt",
+						Data:        []byte("attachment2 content"),
+						ContentType: aws.String("text/plain"),
+					},
 				},
 			},
 			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
@@ -154,12 +162,26 @@ func TestSES_SendEmail(t *testing.T) {
 							return nil, errors.New("expected 2 attachments")
 						}
 						// Verify attachment content
+						if *attachments[0].FileName != "attachment1.txt" {
+							return nil, errors.New("attachment 1 filename mismatch")
+						}
 						if string(attachments[0].RawContent) != "attachment1 content" {
 							return nil, errors.New("attachment 1 content mismatch")
+						}
+						if *attachments[0].ContentType != "text/plain" {
+							return nil, errors.New("attachment 1 content type mismatch")
+						}
+
+						if *attachments[1].FileName != "attachment2.txt" {
+							return nil, errors.New("attachment 2 filename mismatch")
 						}
 						if string(attachments[1].RawContent) != "attachment2 content" {
 							return nil, errors.New("attachment 2 content mismatch")
 						}
+						if *attachments[1].ContentType != "text/plain" {
+							return nil, errors.New("attachment 2 content type mismatch")
+						}
+
 						return &sesv2.SendEmailOutput{}, nil
 					},
 				).Times(1)
@@ -183,7 +205,7 @@ func TestSES_SendEmail(t *testing.T) {
 				TextBody:    "give me your bitcoin keys and I will send you money",
 				HtmlBody:    "give me your bitcoin keys and I will send you money",
 				ConfigSet:   "test-config",
-				Attachments: [][]byte{{}, {}},
+				Attachments: []Attachment{{}, {}},
 			},
 			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
 				mockSvc := NewMockSESClientAPI(ctrl)
@@ -201,7 +223,7 @@ func TestSES_SendEmail(t *testing.T) {
 				TextBody:    "give me your bitcoin keys and I will send you money",
 				HtmlBody:    "give me your bitcoin keys and I will send you money",
 				ConfigSet:   "test-config",
-				Attachments: [][]byte{{}, {}},
+				Attachments: []Attachment{{}, {}},
 			},
 			mockSetup: func(ctrl *gomock.Controller) SESClientAPI {
 				mockSvc := NewMockSESClientAPI(ctrl)
