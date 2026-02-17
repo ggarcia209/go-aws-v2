@@ -83,7 +83,9 @@ func (s *SES) SendEmail(ctx context.Context, params SendEmailParams) error {
 	var attachements = make([]types.Attachment, 0)
 	for _, attachment := range params.Attachments {
 		attachements = append(attachements, types.Attachment{
-			RawContent: attachment,
+			FileName:    aws.String(attachment.FileName),
+			RawContent:  attachment.Data,
+			ContentType: attachment.ContentType,
 		})
 	}
 
