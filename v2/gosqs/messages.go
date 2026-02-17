@@ -97,7 +97,7 @@ func (s *Messages) SendMessage(ctx context.Context, options SendMsgOptions) (*Se
 			if re.ResponseError == nil {
 				return nil, goaws.NewInternalError(fmt.Errorf("s.svc.DeleteMessage: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusBadRequest:
 				return nil, NewInvalidMessageContentError(input.MessageBody)
 			case http.StatusNotFound:
@@ -274,7 +274,7 @@ func (s *Messages) DeleteMessage(ctx context.Context, url, handle string) error 
 			if re.ResponseError == nil {
 				return goaws.NewInternalError(fmt.Errorf("s.svc.DeleteMessage: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return NewInvalidAddressError(url)
 			default:

@@ -58,7 +58,7 @@ func (s *SecretsManager) GetSecret(ctx context.Context, key string) (*GetSecretR
 			if re.ResponseError == nil {
 				return nil, fmt.Errorf("s.svc.GetSecretValue: %w", re.Err)
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusUnauthorized,
 				http.StatusForbidden:
 				return nil, NewSecretPermissionsError(key)

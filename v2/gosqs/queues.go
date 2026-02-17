@@ -101,7 +101,7 @@ func (s *Queues) GetQueueURL(ctx context.Context, name string) (*GetQueueUrlResp
 			if re.ResponseError == nil {
 				return nil, goaws.NewInternalError(fmt.Errorf("s.svc.GetQueueUrl: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return nil, NewQueueNotFoundError(name)
 			default:
@@ -134,7 +134,7 @@ func (s *Queues) DeleteQueue(ctx context.Context, url string) error {
 			if re.ResponseError == nil {
 				return goaws.NewInternalError(fmt.Errorf("s.svc.DeleteQueue: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return NewQueueNotFoundError(url)
 			default:
@@ -162,7 +162,7 @@ func (s *Queues) PurgeQueue(ctx context.Context, url string) error {
 			if re.ResponseError == nil {
 				return goaws.NewInternalError(fmt.Errorf("s.svc.PurgeQueue: %w", re.Err))
 			}
-			switch re.ResponseError.HTTPStatusCode() {
+			switch re.HTTPStatusCode() {
 			case http.StatusNotFound:
 				return NewQueueNotFoundError(url)
 			default:
