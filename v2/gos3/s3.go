@@ -240,7 +240,6 @@ func (s *S3) GetPresignedURL(ctx context.Context, req GetPresignedUrlRequest) (*
 		}
 
 		if req.Put.Checksum != nil {
-			input.ChecksumAlgorithm = types.ChecksumAlgorithmSha256
 			input.ChecksumSHA256 = pointy.String(string(*req.Put.Checksum))
 		}
 
