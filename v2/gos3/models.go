@@ -4,6 +4,8 @@ import "io"
 
 type SHA256Checksum string
 
+const MetadataKeyChecksumSHA256 = "checksum_sha256"
+
 type UploadFileRequest struct {
 	Bucket   string            `json:"bucket"`
 	Key      string            `json:"key"`

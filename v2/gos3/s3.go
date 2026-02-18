@@ -146,9 +146,18 @@ func (s *S3) HeadObject(ctx context.Context, req GetFileRequest) (*HeadObjectRes
 		resp.ContentType = *obj.ContentType
 	}
 
-	if req.UseChecksum && obj.ChecksumSHA256 != nil {
-		resp.Sha256Checksum = *obj.ChecksumSHA256
+	if req.UseChecksum {
+		if obj.ChecksumSHA256 != nil {
+			resp.Sha256Checksum = *obj.ChecksumSHA256
+		} else {
+			val, ok := obj.Metadata[MetadataKeyChecksumSHA256]
+			if !ok {
+				return nil, NewMissingChecksumError()
+			}
+			resp.Sha256Checksum = string(val)
+		}
 	}
+
 	return resp, nil
 }
 
@@ -240,6 +249,15 @@ func (s *S3) GetPresignedURL(ctx context.Context, req GetPresignedUrlRequest) (*
 		}
 
 		if req.Put.Checksum != nil {
+			if input.Metadata == nil {
+				input.Metadata = make(map[string]string)
+			}
+
+			// s3 doesn't store SHA256 hash of presigned URL upload,
+			// so we store as metadata value
+			input.Metadata[MetadataKeyChecksumSHA256] = string(*req.Put.Checksum)
+
+			input.ChecksumAlgorithm = types.ChecksumAlgorithmSha256
 			input.ChecksumSHA256 = pointy.String(string(*req.Put.Checksum))
 		}
 

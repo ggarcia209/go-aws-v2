@@ -182,6 +182,32 @@ func TestS3_HeadObject(t *testing.T) {
 			expectedError: nil,
 		},
 		{
+			name: "Success - With Checkusm",
+			req: GetFileRequest{
+				Bucket:      "test-bucket",
+				Key:         "test-key",
+				UseChecksum: true,
+			},
+			mockSetup: func(ctrl *gomock.Controller) S3ClientAPI {
+				m := NewMockS3ClientAPI(ctrl)
+				m.EXPECT().HeadObject(context.Background(), &s3.HeadObjectInput{
+					Bucket:       aws.String("test-bucket"),
+					Key:          aws.String("test-key"),
+					ChecksumMode: types.ChecksumModeEnabled,
+				}).Return(&s3.HeadObjectOutput{
+					Metadata:    map[string]string{"foo": "bar", "checksum_sha256": "checksum"},
+					ContentType: aws.String("application/json"),
+				}, nil).Times(1)
+				return m
+			},
+			expectedResp: &HeadObjectResponse{
+				Metadata:       map[string]string{"foo": "bar", "checksum_sha256": "checksum"},
+				ContentType:    "application/json",
+				Sha256Checksum: "checksum",
+			},
+			expectedError: nil,
+		},
+		{
 			name: "NotFound",
 			req: GetFileRequest{
 				Bucket: "test-bucket",
@@ -197,6 +223,28 @@ func TestS3_HeadObject(t *testing.T) {
 			},
 			expectedResp:  nil,
 			expectedError: NewItemNotFoundError("missing-key"),
+		},
+		{
+			name: "Missing Checksum",
+			req: GetFileRequest{
+				Bucket:      "test-bucket",
+				Key:         "missing-key",
+				UseChecksum: true,
+			},
+			mockSetup: func(ctrl *gomock.Controller) S3ClientAPI {
+				m := NewMockS3ClientAPI(ctrl)
+				m.EXPECT().HeadObject(context.Background(), &s3.HeadObjectInput{
+					Bucket:       aws.String("test-bucket"),
+					Key:          aws.String("missing-key"),
+					ChecksumMode: types.ChecksumModeEnabled,
+				}).Return(&s3.HeadObjectOutput{
+					Metadata:    map[string]string{"foo": "bar"},
+					ContentType: aws.String("application/json"),
+				}, nil).Times(1)
+				return m
+			},
+			expectedResp:  nil,
+			expectedError: NewMissingChecksumError(),
 		},
 	}
 
@@ -526,6 +574,38 @@ func TestS3_GetPresignedURL(t *testing.T) {
 			},
 			expectedResp:  nil,
 			expectedError: goaws.NewInternalError(errors.New("psCli.PresignGetObject: presign fail")),
+		},
+		{
+			name: "PutRequestWithChecksum",
+			req: GetPresignedUrlRequest{
+				Put: &UploadFileRequest{
+					Bucket:   "test-bucket",
+					Key:      "test-key",
+					File:     bytes.NewReader([]byte("content")),
+					Checksum: func() *SHA256Checksum { s := SHA256Checksum("test-checksum-hash"); return &s }(),
+				},
+				ExpirySeconds: 3600,
+			},
+			mockSetup: func(ctrl *gomock.Controller) S3PresignClientAPI {
+				m := NewMockS3PresignClientAPI(ctrl)
+				m.EXPECT().PresignPutObject(context.Background(), &s3.PutObjectInput{
+					Bucket:            aws.String("test-bucket"),
+					Key:               aws.String("test-key"),
+					Body:              bytes.NewReader([]byte("content")),
+					ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+					ChecksumSHA256:    aws.String("test-checksum-hash"),
+					Metadata: map[string]string{
+						"checksum_sha256": "test-checksum-hash",
+					},
+				}, gomock.Any()).Return(&v4.PresignedHTTPRequest{
+					URL: "https://test-bucket.s3.amazonaws.com/test-key?signature=xyz",
+				}, nil).Times(1)
+				return m
+			},
+			expectedResp: &GetPresignedUrlResponse{
+				PutUrl: "https://test-bucket.s3.amazonaws.com/test-key?signature=xyz",
+			},
+			expectedError: nil,
 		},
 	}
 
