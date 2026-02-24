@@ -182,7 +182,12 @@ func TestQueries_GetItem(t *testing.T) {
 			q := NewQueries(mockSvc, tables, nil)
 
 			item := &TestItem{}
-			err := q.GetItem(context.Background(), tt.query, tt.tableName, item, NewExpression())
+			err := q.GetItem(context.Background(), GetItemParams{
+				Query:      tt.query,
+				TableName:  tt.tableName,
+				ItemPtr:    item,
+				Expression: NewExpression(),
+			})
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -433,6 +438,184 @@ func TestQueries_BatchWriteCreate(t *testing.T) {
 				assert.Equal(t, true, errors.As(err, &awsErr))
 			} else {
 				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestQueries_ScanItems(t *testing.T) {
+	tests := []struct {
+		name          string
+		params        QueryItemsParams
+		mockSetup     func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI
+		expectedError error
+	}{
+		{
+			name: "Success",
+			params: QueryItemsParams{
+				TableName:  "test-table",
+				Expression: NewExpression(),
+			},
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				m := NewMockDynamoDBQueriesClientAPI(ctrl)
+				m.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dynamodb.ScanOutput{
+					Items: []map[string]types.AttributeValue{
+						{
+							"id": &types.AttributeValueMemberS{Value: "1"},
+						},
+					},
+				}, nil).Times(1)
+				return m
+			},
+			expectedError: nil,
+		},
+		{
+			name: "TableNotFound",
+			params: QueryItemsParams{
+				TableName:  "missing-table",
+				Expression: NewExpression(),
+			},
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				return NewMockDynamoDBQueriesClientAPI(ctrl)
+			},
+			expectedError: NewTableNotFoundError("missing-table"),
+		},
+		{
+			name: "Error",
+			params: QueryItemsParams{
+				TableName:  "test-table",
+				Expression: NewExpression(),
+			},
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				m := NewMockDynamoDBQueriesClientAPI(ctrl)
+				m.EXPECT().Scan(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("scan error")).Times(1)
+				return m
+			},
+			expectedError: goaws.NewInternalError(errors.New("q.svc.Scan: scan error")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSvc := tt.mockSetup(ctrl)
+
+			// Setup tables map
+			tables := map[string]*Table{}
+			if tt.params.TableName == "test-table" {
+				tables["test-table"] = &Table{
+					TableName:      "test-table",
+					PrimaryKeyName: "id",
+					PrimaryKeyType: "S",
+				}
+			}
+
+			q := NewQueries(mockSvc, tables, nil)
+
+			res, err := q.ScanItems(context.Background(), tt.params)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError.Error())
+				assert.Implements(t, (*goaws.AwsError)(nil), err)
+				assert.Nil(t, res)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, res)
+				assert.Len(t, res.Rows, 1)
+				assert.Equal(t, "1", res.Rows[0]["id"])
+			}
+		})
+	}
+}
+
+func TestQueries_QueryItems(t *testing.T) {
+	tests := []struct {
+		name          string
+		params        QueryItemsParams
+		mockSetup     func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI
+		expectedError error
+	}{
+		{
+			name: "Success",
+			params: QueryItemsParams{
+				TableName:  "test-table",
+				Expression: NewExpression(),
+			},
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				m := NewMockDynamoDBQueriesClientAPI(ctrl)
+				m.EXPECT().Query(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dynamodb.QueryOutput{
+					Items: []map[string]types.AttributeValue{
+						{
+							"id": &types.AttributeValueMemberS{Value: "1"},
+						},
+					},
+				}, nil).Times(1)
+				return m
+			},
+			expectedError: nil,
+		},
+		{
+			name: "TableNotFound",
+			params: QueryItemsParams{
+				TableName:  "missing-table",
+				Expression: NewExpression(),
+			},
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				return NewMockDynamoDBQueriesClientAPI(ctrl)
+			},
+			expectedError: NewTableNotFoundError("missing-table"),
+		},
+		{
+			name: "Error",
+			params: QueryItemsParams{
+				TableName:  "test-table",
+				Expression: NewExpression(),
+			},
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				m := NewMockDynamoDBQueriesClientAPI(ctrl)
+				m.EXPECT().Query(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("query error")).Times(1)
+				return m
+			},
+			expectedError: goaws.NewInternalError(errors.New("q.svc.Query: query error")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSvc := tt.mockSetup(ctrl)
+
+			// Setup tables map
+			tables := map[string]*Table{}
+			if tt.params.TableName == "test-table" {
+				tables["test-table"] = &Table{
+					TableName:      "test-table",
+					PrimaryKeyName: "id",
+					PrimaryKeyType: "S",
+				}
+			}
+
+			q := NewQueries(mockSvc, tables, nil)
+
+			res, err := q.QueryItems(context.Background(), tt.params)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError.Error())
+				assert.Implements(t, (*goaws.AwsError)(nil), err)
+				assert.Nil(t, res)
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, res)
+				assert.Len(t, res.Rows, 1)
+				assert.Equal(t, "1", res.Rows[0]["id"])
 			}
 		})
 	}

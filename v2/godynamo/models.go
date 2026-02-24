@@ -23,6 +23,21 @@ type ListTableParams struct {
 	Limit      *int32  `json:"limit"`
 }
 
+type GetItemParams struct {
+	Query           *Query     `json:"query"`
+	TableName       string     `json:"table_name"`
+	ItemPtr         any        `json:"item_ptr"`
+	Expression      Expression `json:"expression"`
+	ConsistentReads bool       `json:"consistent_reads"`
+}
+
+type QueryItemsParams struct {
+	TableName  string     `json:"table_name"`
+	StartKey   any        `json:"start_key"`
+	Expression Expression `json:"expression"`
+	PerPage    *int32     `json:"per_page"`
+}
+
 // CreateNewTableObj creates a new Table struct.
 // The Table's key's Go types must be declared as strings.
 // ex: t := CreateNewTableObj("my_table", "Year", "int", "MovieName", "string")

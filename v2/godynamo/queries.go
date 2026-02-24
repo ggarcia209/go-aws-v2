@@ -17,14 +17,14 @@ import (
 //go:generate mockgen -destination=../mocks/godynamomock/queries.go -package=godynamomock . QueriesLogic
 type QueriesLogic interface {
 	CreateItem(ctx context.Context, item any, tableName string) error
-	GetItem(ctx context.Context, query *Query, tableName string, item any, expr Expression) error
+	GetItem(ctx context.Context, params GetItemParams) error
 	UpdateItem(ctx context.Context, query *Query, tableName string, expr Expression) error
 	DeleteItem(ctx context.Context, query *Query, tableName string) error
 	BatchWriteCreate(ctx context.Context, tableName string, items []any) error
 	BatchWriteDelete(ctx context.Context, tableName string, queries []*Query) error
 	BatchGet(ctx context.Context, tableName string, queries []*Query, expr Expression) ([]QueryRow, error)
-	QueryItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*QueryResults, error)
-	ScanItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*ScanResults, error)
+	QueryItems(ctx context.Context, params QueryItemsParams) (*QueryResults, error)
+	ScanItems(ctx context.Context, params QueryItemsParams) (*ScanResults, error)
 }
 
 // DynamoDBQueriesClientAPI defines the interface for the AWS DynamoDB client methods used by this package.
@@ -81,21 +81,22 @@ func (q *Queries) CreateItem(ctx context.Context, item any, tableName string) er
 }
 
 // GetItem reads an item from the database and unmarshals it's attribute map into the provided itemPtr.
-func (q *Queries) GetItem(ctx context.Context, query *Query, tableName string, itemPtr any, expr Expression) error {
+func (q *Queries) GetItem(ctx context.Context, params GetItemParams) error {
 	// get table
-	t := q.tables[tableName]
+	t := q.tables[params.TableName]
 	if t == nil {
-		return NewTableNotFoundError(tableName)
+		return NewTableNotFoundError(params.TableName)
 	}
 
-	key := keyMaker(query, t)
+	key := keyMaker(params.Query, t)
 	input := &dynamodb.GetItemInput{
-		TableName: aws.String(t.TableName),
-		Key:       key,
+		TableName:      aws.String(t.TableName),
+		Key:            key,
+		ConsistentRead: aws.Bool(params.ConsistentReads),
 	}
-	if expr.Projection() != nil {
-		input.ExpressionAttributeNames = expr.Names()
-		input.ProjectionExpression = expr.Projection()
+	if params.Expression.Projection() != nil {
+		input.ExpressionAttributeNames = params.Expression.Names()
+		input.ProjectionExpression = params.Expression.Projection()
 	}
 
 	result, err := q.svc.GetItem(ctx, input)
@@ -103,7 +104,7 @@ func (q *Queries) GetItem(ctx context.Context, query *Query, tableName string, i
 		return handleErr(fmt.Errorf("q.svc.GetItem: %w", err))
 	}
 
-	if err = attributevalue.UnmarshalMap(result.Item, itemPtr); err != nil {
+	if err = attributevalue.UnmarshalMap(result.Item, params.ItemPtr); err != nil {
 		return goaws.NewInternalError(fmt.Errorf("attributevalue.UnmarshalMap: %w", err))
 	}
 
@@ -415,27 +416,28 @@ func (q *Queries) BatchGet(ctx context.Context, tableName string, queries []*Que
 }
 
 // ScanItems scans the given Table for items matching the given expression parameters.
-func (q *Queries) ScanItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*ScanResults, error) {
+func (q *Queries) ScanItems(ctx context.Context, params QueryItemsParams) (*ScanResults, error) {
 	// get table
-	t := q.tables[tableName]
+	t := q.tables[params.TableName]
 	if t == nil {
-		return nil, NewTableNotFoundError(tableName)
+		return nil, NewTableNotFoundError(params.TableName)
 	}
 
 	items := make([]QueryRow, 0)
 
 	// Build the query input parameters
+	expr := params.Expression
 	input := &dynamodb.ScanInput{
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		FilterExpression:          expr.Filter(),
 		ProjectionExpression:      expr.Projection(),
 		TableName:                 aws.String(t.TableName),
-		Limit:                     perPage,
+		Limit:                     params.PerPage,
 	}
 
-	if startKey != nil {
-		av, err := attributevalue.MarshalMap(startKey)
+	if params.StartKey != nil {
+		av, err := attributevalue.MarshalMap(params.StartKey)
 		if err != nil {
 			return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.MarshalMap: %w", err))
 		}
@@ -462,23 +464,24 @@ func (q *Queries) ScanItems(ctx context.Context, tableName string, startKey any,
 		LastKey: result.LastEvaluatedKey,
 	}
 
-	if perPage != nil {
-		scanResult.PerPage = *perPage
+	if params.PerPage != nil {
+		scanResult.PerPage = *params.PerPage
 	}
 	return scanResult, nil
 }
 
 // QueryItems queries the given Table for items matching the given expression parameters.
-func (q *Queries) QueryItems(ctx context.Context, tableName string, startKey any, expr Expression, perPage *int32) (*QueryResults, error) {
+func (q *Queries) QueryItems(ctx context.Context, params QueryItemsParams) (*QueryResults, error) {
 	// get table
-	t := q.tables[tableName]
+	t := q.tables[params.TableName]
 	if t == nil {
-		return nil, NewTableNotFoundError(tableName)
+		return nil, NewTableNotFoundError(params.TableName)
 	}
 
 	items := make([]QueryRow, 0)
 
 	// Build the query input parameters
+	expr := params.Expression
 	input := &dynamodb.QueryInput{
 		KeyConditionExpression:    expr.KeyCondition(),
 		ExpressionAttributeNames:  expr.Names(),
@@ -486,11 +489,11 @@ func (q *Queries) QueryItems(ctx context.Context, tableName string, startKey any
 		FilterExpression:          expr.Filter(),
 		ProjectionExpression:      expr.Projection(),
 		TableName:                 aws.String(t.TableName),
-		Limit:                     perPage,
+		Limit:                     params.PerPage,
 	}
 
-	if startKey != nil {
-		av, err := attributevalue.MarshalMap(startKey)
+	if params.StartKey != nil {
+		av, err := attributevalue.MarshalMap(params.StartKey)
 		if err != nil {
 			return nil, goaws.NewInternalError(fmt.Errorf("attributevalue.MarshalMap: %w", err))
 		}
@@ -517,8 +520,8 @@ func (q *Queries) QueryItems(ctx context.Context, tableName string, startKey any
 		LastKey: result.LastEvaluatedKey,
 	}
 
-	if perPage != nil {
-		queryResult.PerPage = *perPage
+	if params.PerPage != nil {
+		queryResult.PerPage = *params.PerPage
 	}
 
 	return queryResult, nil
