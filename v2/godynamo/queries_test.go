@@ -40,7 +40,7 @@ func TestQueries_CreateItem(t *testing.T) {
 	tests := []struct {
 		name          string
 		tableName     string
-		item          map[string]interface{}
+		item          any
 		mockSetup     func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI
 		expectedError error
 	}{
@@ -74,6 +74,15 @@ func TestQueries_CreateItem(t *testing.T) {
 				return m
 			},
 			expectedError: goaws.NewInternalError(errors.New("q.svc.PutItem: put error")),
+		},
+		{
+			name:      "NilItem",
+			tableName: "test-table",
+			item:      nil,
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				return NewMockDynamoDBQueriesClientAPI(ctrl)
+			},
+			expectedError: NewNilModelError(),
 		},
 	}
 
@@ -158,6 +167,16 @@ func TestQueries_GetItem(t *testing.T) {
 			},
 			expectedItem:  &TestItem{},
 			expectedError: goaws.NewInternalError(errors.New("q.svc.GetItem: get error")),
+		},
+		{
+			name:      "NilQuery",
+			tableName: "test-table",
+			query:     nil,
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				return NewMockDynamoDBQueriesClientAPI(ctrl)
+			},
+			expectedItem:  &TestItem{},
+			expectedError: NewNilModelError(),
 		},
 	}
 
@@ -405,6 +424,15 @@ func TestQueries_BatchWriteCreate(t *testing.T) {
 				return m
 			},
 			expectedError: goaws.NewInternalError(errors.New("q.batchWriteUtil: q.svc.BatchWriteItem: batch error")),
+		},
+		{
+			name:      "NilItems",
+			tableName: "test-table",
+			items:     nil,
+			mockSetup: func(ctrl *gomock.Controller) DynamoDBQueriesClientAPI {
+				return NewMockDynamoDBQueriesClientAPI(ctrl)
+			},
+			expectedError: NewNilModelError(),
 		},
 	}
 
