@@ -1,6 +1,7 @@
 package goses
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ggarcia209/go-aws-v2/v2/goaws"
@@ -12,7 +13,7 @@ type InvalidRecipientError struct {
 
 func NewInvalidRecipientError() *InvalidRecipientError {
 	return &InvalidRecipientError{
-		goaws.NewClientError(fmt.Errorf("invalid recipient")),
+		goaws.NewClientError(errors.New("invalid recipient")),
 	}
 }
 
