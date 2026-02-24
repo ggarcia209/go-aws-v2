@@ -57,6 +57,10 @@ func NewQueries(svc DynamoDBQueriesClientAPI, tables map[string]*Table, fc *Fail
 
 // CreateItem puts a new item in the table.
 func (q *Queries) CreateItem(ctx context.Context, item any, tableName string) error {
+	if item == nil {
+		return NewNilModelError()
+	}
+
 	// check if table exists
 	t := q.tables[tableName]
 	if t == nil {
@@ -82,6 +86,10 @@ func (q *Queries) CreateItem(ctx context.Context, item any, tableName string) er
 
 // GetItem reads an item from the database and unmarshals it's attribute map into the provided itemPtr.
 func (q *Queries) GetItem(ctx context.Context, params GetItemParams) error {
+	if params.Query == nil {
+		return NewNilModelError()
+	}
+
 	// get table
 	t := q.tables[params.TableName]
 	if t == nil {
@@ -170,6 +178,9 @@ func (q *Queries) DeleteItem(ctx context.Context, query *Query, tableName string
 
 // BatchWriteCreate writes a list of items to the database.
 func (q *Queries) BatchWriteCreate(ctx context.Context, tableName string, items []any) error {
+	if len(items) == 0 {
+		return NewNilModelError()
+	}
 	if len(items) > 25 {
 		return NewCollectionSizeExceededError(len(items))
 	}
@@ -434,6 +445,7 @@ func (q *Queries) ScanItems(ctx context.Context, params QueryItemsParams) (*Scan
 		ProjectionExpression:      expr.Projection(),
 		TableName:                 aws.String(t.TableName),
 		Limit:                     params.PerPage,
+		ConsistentRead:            aws.Bool(params.ConsistentReads),
 	}
 
 	if params.StartKey != nil {
@@ -490,6 +502,7 @@ func (q *Queries) QueryItems(ctx context.Context, params QueryItemsParams) (*Que
 		ProjectionExpression:      expr.Projection(),
 		TableName:                 aws.String(t.TableName),
 		Limit:                     params.PerPage,
+		ConsistentRead:            aws.Bool(params.ConsistentReads),
 	}
 
 	if params.StartKey != nil {

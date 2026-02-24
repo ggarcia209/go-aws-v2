@@ -14,6 +14,14 @@ func NewTableNotFoundError(tableName string) *TableNotFoundError {
 	return &TableNotFoundError{goaws.NewClientError(fmt.Errorf("table not found: %s", tableName))}
 }
 
+type NilModelError struct {
+	*goaws.ClientErr
+}
+
+func NewNilModelError() *NilModelError {
+	return &NilModelError{goaws.NewClientError(fmt.Errorf("input model is nil"))}
+}
+
 type ConditionCheckFailedError struct {
 	*goaws.ClientErr
 }

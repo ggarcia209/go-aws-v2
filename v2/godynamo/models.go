@@ -32,10 +32,11 @@ type GetItemParams struct {
 }
 
 type QueryItemsParams struct {
-	TableName  string     `json:"table_name"`
-	StartKey   any        `json:"start_key"`
-	Expression Expression `json:"expression"`
-	PerPage    *int32     `json:"per_page"`
+	TableName       string     `json:"table_name"`
+	StartKey        any        `json:"start_key"`
+	Expression      Expression `json:"expression"`
+	PerPage         *int32     `json:"per_page"`
+	ConsistentReads bool       `json:"consistent_reads"`
 }
 
 // CreateNewTableObj creates a new Table struct.
