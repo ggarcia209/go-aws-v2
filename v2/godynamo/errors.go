@@ -1,6 +1,7 @@
 package godynamo
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ggarcia209/go-aws-v2/v2/goaws"
@@ -19,7 +20,7 @@ type NilModelError struct {
 }
 
 func NewNilModelError() *NilModelError {
-	return &NilModelError{goaws.NewClientError(fmt.Errorf("input model is nil"))}
+	return &NilModelError{goaws.NewClientError(errors.New("input model is nil"))}
 }
 
 type ConditionCheckFailedError struct {
@@ -35,7 +36,7 @@ type RateLimitExceededError struct {
 }
 
 func NewRateLimitExceededError() *RateLimitExceededError {
-	return &RateLimitExceededError{goaws.NewRetryableClientError(fmt.Errorf("rate limit exceeded"))}
+	return &RateLimitExceededError{goaws.NewRetryableClientError(errors.New("rate limit exceeded"))}
 }
 
 type ResourceNotFoundError struct {
@@ -59,7 +60,7 @@ type ReferenceObjectsCountError struct {
 }
 
 func NewReferenceObjectsCountError() *ReferenceObjectsCountError {
-	return &ReferenceObjectsCountError{goaws.NewClientError(fmt.Errorf("number of reference objects does not match number of queries"))}
+	return &ReferenceObjectsCountError{goaws.NewClientError(errors.New("number of reference objects does not match number of queries"))}
 }
 
 type ResourceInUseError struct {
@@ -75,7 +76,7 @@ type MaxRetriesExceededError struct {
 }
 
 func NewMaxRetriesExceededError() *MaxRetriesExceededError {
-	return &MaxRetriesExceededError{goaws.NewClientError(fmt.Errorf("max retries exceeded"))}
+	return &MaxRetriesExceededError{goaws.NewClientError(errors.New("max retries exceeded"))}
 }
 
 type BadTxRequestError struct {
@@ -83,7 +84,7 @@ type BadTxRequestError struct {
 }
 
 func NewBadTxRequestError() *BadTxRequestError {
-	return &BadTxRequestError{goaws.NewClientError(fmt.Errorf("bad transaction request"))}
+	return &BadTxRequestError{goaws.NewClientError(errors.New("bad transaction request"))}
 }
 
 type TxConditonCheckFailedError struct {
@@ -99,7 +100,7 @@ type TxThrottledError struct {
 }
 
 func NewTxThrottledError() *TxThrottledError {
-	return &TxThrottledError{goaws.NewRetryableClientError(fmt.Errorf("transaction throttled"))}
+	return &TxThrottledError{goaws.NewRetryableClientError(errors.New("transaction throttled"))}
 }
 
 type InvalidRequestTypeError struct {
@@ -107,7 +108,7 @@ type InvalidRequestTypeError struct {
 }
 
 func NewInvalidRequestTypeError() *InvalidRequestTypeError {
-	return &InvalidRequestTypeError{goaws.NewClientError(fmt.Errorf("invalid request type"))}
+	return &InvalidRequestTypeError{goaws.NewClientError(errors.New("invalid request type"))}
 }
 
 type TxConflictError struct {
@@ -115,7 +116,7 @@ type TxConflictError struct {
 }
 
 func NewTxConflictError() *TxConflictError {
-	return &TxConflictError{goaws.NewRetryableClientError(fmt.Errorf("transaction conflict"))}
+	return &TxConflictError{goaws.NewRetryableClientError(errors.New("transaction conflict"))}
 }
 
 type TxInProgressError struct {
@@ -123,7 +124,7 @@ type TxInProgressError struct {
 }
 
 func NewTxInProgressError() *TxInProgressError {
-	return &TxInProgressError{goaws.NewClientError(fmt.Errorf("transaction in progress"))}
+	return &TxInProgressError{goaws.NewClientError(errors.New("transaction in progress"))}
 }
 
 type TxItemsExceedsLimitError struct {
@@ -131,5 +132,5 @@ type TxItemsExceedsLimitError struct {
 }
 
 func NewTxItemsExceedsLimitError() *TxItemsExceedsLimitError {
-	return &TxItemsExceedsLimitError{goaws.NewClientError(fmt.Errorf("transaction items exceeds limit of 25"))}
+	return &TxItemsExceedsLimitError{goaws.NewClientError(errors.New("transaction items exceeds limit of 25"))}
 }
